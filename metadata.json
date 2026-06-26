@@ -1,0 +1,6 @@
+{
+  "name": "SnapQR",
+  "description": "Modern web-based Photo Booth with customizable vertical photo strips and instant QR code sharing.",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
