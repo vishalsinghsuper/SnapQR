@@ -49,16 +49,18 @@
     }
   },
   "analytics": {
-    "totalPhotosTaken": 4,
+    "totalPhotosTaken": 7,
     "totalQrScans": 68,
     "totalDownloads": 1,
     "frameUsage": {
       "minimal-white": 1,
-      "cherry-blossom": 3
+      "cherry-blossom": 5,
+      "classic": 1
     },
     "themeUsage": {
       "minimal-white": 1,
-      "cherry-blossom": 3
+      "cherry-blossom": 5,
+      "festival": 1
     }
   }
 }

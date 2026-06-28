@@ -1,1 +1,29 @@
-{}
+{
+  "fzhTYkXH": {
+    "id": "fzhTYkXH",
+    "imageUrl": "/uploads/photo_fzhTYkXH.jpg",
+    "createdAt": "2026-06-28T17:12:05.776Z",
+    "frameId": "cherry-blossom",
+    "themeId": "cherry-blossom",
+    "downloadCount": 0,
+    "scanCount": 0
+  },
+  "q70YvhUZ": {
+    "id": "q70YvhUZ",
+    "imageUrl": "/uploads/photo_q70YvhUZ.png",
+    "createdAt": "2026-06-28T18:08:41.056Z",
+    "frameId": "classic",
+    "themeId": "festival",
+    "downloadCount": 0,
+    "scanCount": 0
+  },
+  "3VXYUMkg": {
+    "id": "3VXYUMkg",
+    "imageUrl": "/uploads/photo_3VXYUMkg.jpg",
+    "createdAt": "2026-06-28T18:22:24.953Z",
+    "frameId": "cherry-blossom",
+    "themeId": "cherry-blossom",
+    "downloadCount": 0,
+    "scanCount": 0
+  }
+}

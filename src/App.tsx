@@ -12,11 +12,10 @@ import CaptureProcess from './components/CaptureProcess';
 import Customizer from './components/Customizer';
 import FinalPreview from './components/FinalPreview';
 import AdminPanel from './components/AdminPanel';
-import ShareScreen from './components/ShareScreen';
 import { EventConfig, AnalyticsData, PhotoStripSettings } from './types';
 
 export default function App() {
-  const [currentScreen, setCurrentScreen] = useState<'welcome' | 'camera-setup' | 'capture' | 'customize' | 'preview' | 'share'>('welcome');
+  const [currentScreen, setCurrentScreen] = useState<'welcome' | 'camera-setup' | 'capture' | 'customize' | 'preview'>('welcome');
   const [photoId, setPhotoId] = useState<string>('');
   
   // App-wide photo and camera states
@@ -53,21 +52,9 @@ export default function App() {
     themeUsage: {}
   });
 
-  // Client Routing check and initial API fetch on mount
+  // Initial API fetch on mount
   useEffect(() => {
-    // Check if URL matches a share route (either via pathname /share/:id, or via query parameter ?share=id or ?id=id)
-    const urlParams = new URLSearchParams(window.location.search);
-    const queryShareId = urlParams.get('share') || urlParams.get('id');
-    const shareMatch = window.location.pathname.match(/\/share\/([a-zA-Z0-9_-]+)/);
-    const matchedPhotoId = queryShareId || (shareMatch && shareMatch[1]);
-
-    if (matchedPhotoId) {
-      setPhotoId(matchedPhotoId);
-      setCurrentScreen('share');
-      setLoadingConfig(false);
-    } else {
-      fetchConfigAndAnalytics();
-    }
+    fetchConfigAndAnalytics();
   }, []);
 
   const fetchConfigAndAnalytics = async () => {
@@ -142,15 +129,7 @@ export default function App() {
     );
   }
 
-  // Render direct mobile share viewport
-  if (currentScreen === 'share') {
-    return (
-      <div className="min-h-screen bg-[#0d0104] relative">
-        <div className="mesh-gradient" />
-        <ShareScreen photoId={photoId} />
-      </div>
-    );
-  }
+  // Removed direct mobile share viewport
 
   return (
     <div className="min-h-screen text-white font-sans flex flex-col justify-between selection:bg-pink-500 selection:text-white overflow-x-hidden relative">

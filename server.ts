@@ -11,11 +11,23 @@ import dotenv from 'dotenv';
 import https from 'https';
 import http from 'http';
 import { execSync } from 'child_process';
+import { v2 as cloudinary } from 'cloudinary';
 
 dotenv.config();
 
+// Cloudinary Configuration
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
+});
+
 // Helper to ensure SSL certificates exist
 function ensureSSLCertificates() {
+  if (process.env.USE_SSL !== 'true') {
+    return null;
+  }
+
   const keyPath = path.join(process.cwd(), 'key.pem');
   const certPath = path.join(process.cwd(), 'cert.pem');
 
@@ -43,17 +55,12 @@ const DATA_DIR = path.join(process.cwd(), 'data');
 const IMAGES_DIR = path.join(DATA_DIR, 'images');
 const DB_FILE = path.join(DATA_DIR, 'db.json');
 const PHOTOS_FILE = path.join(DATA_DIR, 'photos.json');
-const UPLOADS_DIR = path.join(process.cwd(), 'public', 'uploads');
-
 // Ensure directories exist
 if (!fs.existsSync(DATA_DIR)) {
   fs.mkdirSync(DATA_DIR, { recursive: true });
 }
 if (!fs.existsSync(IMAGES_DIR)) {
   fs.mkdirSync(IMAGES_DIR, { recursive: true });
-}
-if (!fs.existsSync(UPLOADS_DIR)) {
-  fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 }
 
 // Initial default database structure
@@ -189,40 +196,17 @@ function cleanupExpiredPhotos() {
     const now = new Date();
     const expiryTime = 24 * 60 * 60 * 1000; // 24 hours in ms
     let deletedCount = 0;
-    
+
     for (const id of Object.keys(photos)) {
       const photo = photos[id];
       const createdDate = new Date(photo.createdAt);
       if (now.getTime() - createdDate.getTime() > expiryTime) {
-        // Delete image file from disk
-        const filename = photo.imageUrl ? path.basename(photo.imageUrl) : `photo_${id}.png`;
-        
-        // Check UPLOADS_DIR
-        const uploadPath = path.join(UPLOADS_DIR, filename);
-        if (fs.existsSync(uploadPath)) {
-          try {
-            fs.unlinkSync(uploadPath);
-          } catch (err) {
-            console.error(`Failed to delete image file: ${uploadPath}`, err);
-          }
-        }
-        
-        // Also check legacy IMAGES_DIR for older images
-        const legacyPath = path.join(IMAGES_DIR, `${id}.png`);
-        if (fs.existsSync(legacyPath)) {
-          try {
-            fs.unlinkSync(legacyPath);
-          } catch (err) {
-            console.error(`Failed to delete legacy image file: ${legacyPath}`, err);
-          }
-        }
-        
         // Delete from metadata
         delete photos[id];
         deletedCount++;
       }
     }
-    
+
     if (deletedCount > 0) {
       savePhotos(photos);
       console.log(`SnapQR - Cleaned up ${deletedCount} expired photos.`);
@@ -239,11 +223,10 @@ cleanupExpiredPhotos();
 setInterval(cleanupExpiredPhotos, 60 * 60 * 1000);
 
 // Use JSON body parser with generous limit for Base64 image payloads
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ limit: '50mb', extended: true }));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
-// Serve uploaded files publicly
-app.use('/uploads', express.static(UPLOADS_DIR));
+// Local upload serving removed - Cloudinary is used instead
 
 // --- API ROUTES ---
 
@@ -260,7 +243,7 @@ app.get('/api/config', (req, res) => {
 app.post('/api/config', (req, res) => {
   const db = readDB();
   const { eventName, eventDate, eventLogo, customWatermark, enabledCustomizations } = req.body;
-  
+
   if (eventName !== undefined) db.config.eventName = eventName;
   if (eventDate !== undefined) db.config.eventDate = eventDate;
   if (eventLogo !== undefined) db.config.eventLogo = eventLogo;
@@ -291,37 +274,25 @@ app.post('/api/config/reset-analytics', (req, res) => {
 });
 
 // 4. Upload photo strip (Base64 PNG)
-app.post('/api/upload', (req, res) => {
+app.post('/api/upload', async (req, res) => {
   try {
     const { image, frameId, themeId } = req.body;
     if (!image) {
       return res.status(400).json({ success: false, error: "Missing image data" });
     }
 
-    // Detect image type from base64 prefix
-    const matches = image.match(/^data:(image\/\w+);base64,/);
-    const mimeType = matches ? matches[1] : 'image/png';
-    const ext = mimeType === 'image/jpeg' ? 'jpg' : 'png';
-
-    // Process base64
-    const base64Data = image.replace(/^data:image\/\w+;base64,/, "");
-    const buffer = Buffer.from(base64Data, 'base64');
+    // Upload to Cloudinary
+    const result = await cloudinary.uploader.upload(image, {
+      folder: "snapqr",
+    });
 
     const id = generateId(8);
-    const filename = `photo_${id}.${ext}`;
-    const imagePath = path.join(UPLOADS_DIR, filename);
-
-    // Write file to uploads directory
-    fs.writeFileSync(imagePath, buffer);
-
-    const baseUrl = process.env.PUBLIC_URL || `${req.protocol}://${req.get("host")}`;
-    const relativeImageUrl = `/uploads/${filename}`;
-    const absoluteImageUrl = `${baseUrl}${relativeImageUrl}`;
+    const absoluteImageUrl = result.secure_url;
 
     const photos = loadPhotos();
     const photoRecord = {
       id,
-      imageUrl: relativeImageUrl,
+      imageUrl: absoluteImageUrl,
       createdAt: new Date().toISOString(),
       frameId: frameId || 'classic',
       themeId: themeId || 'festival',
@@ -361,11 +332,7 @@ app.get('/api/photos/:id', (req, res) => {
     return res.status(404).json({ error: "Photo strip not found", expired: false });
   }
 
-  const baseUrl = process.env.PUBLIC_URL || `${req.protocol}://${req.get("host")}`;
-  // Ensure the image URL has the full dynamic protocol/host if it starts with /uploads/
-  const absoluteImageUrl = photo.imageUrl.startsWith('http') 
-    ? photo.imageUrl 
-    : `${baseUrl}${photo.imageUrl}`;
+  const absoluteImageUrl = photo.imageUrl;
 
   res.json({
     id: photo.id,
@@ -378,35 +345,7 @@ app.get('/api/photos/:id', (req, res) => {
   });
 });
 
-// 6. Serve the raw image file directly
-app.get('/api/photos/:id/image', (req, res) => {
-  const { id } = req.params;
-  const photos = loadPhotos();
-  const photo = photos[id];
-
-  if (photo && photo.imageUrl) {
-    try {
-      const filename = path.basename(photo.imageUrl);
-      const imagePath = path.join(UPLOADS_DIR, filename);
-      if (fs.existsSync(imagePath)) {
-        const ext = path.extname(filename).toLowerCase();
-        const contentType = ext === '.jpg' || ext === '.jpeg' ? 'image/jpeg' : 'image/png';
-        res.setHeader('Content-Type', contentType);
-        return res.sendFile(imagePath);
-      }
-    } catch (e) {
-      console.error("Error matching photo imageUrl: ", e);
-    }
-  }
-
-  const imagePath = path.join(IMAGES_DIR, `${id}.png`);
-  if (!fs.existsSync(imagePath)) {
-    return res.status(404).send("Image not found or expired");
-  }
-
-  res.setHeader('Content-Type', 'image/png');
-  res.sendFile(imagePath);
-});
+// 6. Serve the raw image file directly - Removed, images served from Cloudinary
 
 // 7. Track QR scan
 app.post('/api/photos/:id/scan', (req, res) => {
@@ -457,20 +396,20 @@ async function startServer() {
 
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
-      server: { 
+      server: {
         middlewareMode: true,
         hmr: ssl ? { protocol: 'wss' } : undefined
       },
       appType: "custom",
     });
-    
+
     // First, pass through all static assets and vite compiled files
     app.use(vite.middlewares);
 
     // Fallback HTML routing for SPA paths (like /share/:id)
     app.get('*', async (req, res, next) => {
       const url = req.originalUrl;
-      
+
       // If the request points to an API endpoint or has a file extension, let it fall through
       if (url.startsWith('/api/') || url.includes('.')) {
         return next();
@@ -481,10 +420,10 @@ async function startServer() {
           path.resolve(process.cwd(), 'index.html'),
           'utf-8'
         );
-        
+
         // Transform index.html through Vite to inject standard dev scripts and styles
         template = await vite.transformIndexHtml(url, template);
-        
+
         res.status(200).set({ 'Content-Type': 'text/html' }).end(template);
       } catch (e) {
         vite.ssrFixStacktrace(e as Error);

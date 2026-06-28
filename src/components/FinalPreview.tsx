@@ -57,18 +57,13 @@ export default function FinalPreview({ stripDataUrl, settings, onReset, onBackTo
 
       const data = await response.json();
       if (data.success) {
-        // Construct a highly robust public share URL using the browser's own location
-        let currentOrigin = window.location.origin;
-        if (currentOrigin.includes('ais-dev-')) {
-          currentOrigin = currentOrigin.replace('ais-dev-', 'ais-pre-');
-        }
-        const clientShareUrl = `${currentOrigin}/share/${data.id}`;
+        const cloudinaryUrl = data.imageUrl;
         
-        setShareUrl(clientShareUrl);
+        setShareUrl(cloudinaryUrl);
         setPhotoId(data.id);
         
-        // Generate QR code representation for the public share URL
-        const qrUrl = await QRCode.toDataURL(clientShareUrl, {
+        // Generate QR code directly to the Cloudinary URL
+        const qrUrl = await QRCode.toDataURL(cloudinaryUrl, {
           width: 350,
           margin: 1.5,
           color: {
