@@ -95,7 +95,7 @@ export default function CaptureProcess({ stream, onPhotosCaptured, onCancel }: C
     ctx.drawImage(video, sx, sy, size, size, 0, 0, canvas.width, canvas.height);
 
     // Get Data URL
-    const dataUrl = canvas.toDataURL('image/png');
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
     
     // Add to captured list
     setCapturedPhotos(prev => {

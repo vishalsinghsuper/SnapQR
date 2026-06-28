@@ -292,7 +292,7 @@ export default function Customizer({ photos, config, onGenerate, onBack }: Custo
         ctx.fillText(watermarkText, W / 2, watermarkY);
       }
 
-      const compositeDataUrl = canvas.toDataURL('image/png');
+      const compositeDataUrl = canvas.toDataURL('image/jpeg', 0.85);
       
       onGenerate(compositeDataUrl, {
         frameColor,
