@@ -4,6 +4,7 @@
  */
 
 import express from 'express';
+import cors from 'cors';
 import path from 'path';
 import fs from 'fs';
 import { createServer as createViteServer } from 'vite';
@@ -221,6 +222,14 @@ function cleanupExpiredPhotos() {
 // Clean on server startup and every hour
 cleanupExpiredPhotos();
 setInterval(cleanupExpiredPhotos, 60 * 60 * 1000);
+
+// Configure CORS
+app.use(cors({
+  origin: true,
+  methods: ['GET','POST','PUT','DELETE','OPTIONS'],
+  allowedHeaders: ['Content-Type','Authorization']
+}));
+app.options('*', cors());
 
 // Use JSON body parser with generous limit for Base64 image payloads
 app.use(express.json({ limit: '10mb' }));
