@@ -239,8 +239,8 @@ cleanupExpiredPhotos();
 setInterval(cleanupExpiredPhotos, 60 * 60 * 1000);
 
 // Use JSON body parser with generous limit for Base64 image payloads
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ limit: '10mb', extended: true }));
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // Serve uploaded files publicly
 app.use('/uploads', express.static(UPLOADS_DIR));
@@ -298,12 +298,17 @@ app.post('/api/upload', (req, res) => {
       return res.status(400).json({ success: false, error: "Missing image data" });
     }
 
+    // Detect image type from base64 prefix
+    const matches = image.match(/^data:(image\/\w+);base64,/);
+    const mimeType = matches ? matches[1] : 'image/png';
+    const ext = mimeType === 'image/jpeg' ? 'jpg' : 'png';
+
     // Process base64
-    const base64Data = image.replace(/^data:image\/png;base64,/, "");
+    const base64Data = image.replace(/^data:image\/\w+;base64,/, "");
     const buffer = Buffer.from(base64Data, 'base64');
 
     const id = generateId(8);
-    const filename = `photo_${id}.png`;
+    const filename = `photo_${id}.${ext}`;
     const imagePath = path.join(UPLOADS_DIR, filename);
 
     // Write file to uploads directory
@@ -384,7 +389,9 @@ app.get('/api/photos/:id/image', (req, res) => {
       const filename = path.basename(photo.imageUrl);
       const imagePath = path.join(UPLOADS_DIR, filename);
       if (fs.existsSync(imagePath)) {
-        res.setHeader('Content-Type', 'image/png');
+        const ext = path.extname(filename).toLowerCase();
+        const contentType = ext === '.jpg' || ext === '.jpeg' ? 'image/jpeg' : 'image/png';
+        res.setHeader('Content-Type', contentType);
         return res.sendFile(imagePath);
       }
     } catch (e) {
