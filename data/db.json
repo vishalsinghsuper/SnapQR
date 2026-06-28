@@ -37,19 +37,28 @@
       "themeId": "cherry-blossom",
       "downloadCount": 0,
       "scanCount": 0
+    },
+    "NxvTU3mm": {
+      "id": "NxvTU3mm",
+      "createdAt": "2026-06-26T16:34:57.882Z",
+      "imageUrl": "http://localhost:3000/uploads/photo_1782491697879_NxvTU3mm.png",
+      "frameId": "cherry-blossom",
+      "themeId": "cherry-blossom",
+      "downloadCount": 0,
+      "scanCount": 0
     }
   },
   "analytics": {
-    "totalPhotosTaken": 3,
+    "totalPhotosTaken": 4,
     "totalQrScans": 68,
     "totalDownloads": 1,
     "frameUsage": {
       "minimal-white": 1,
-      "cherry-blossom": 2
+      "cherry-blossom": 3
     },
     "themeUsage": {
       "minimal-white": 1,
-      "cherry-blossom": 2
+      "cherry-blossom": 3
     }
   }
 }

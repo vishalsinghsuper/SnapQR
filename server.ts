@@ -8,8 +8,32 @@ import path from 'path';
 import fs from 'fs';
 import { createServer as createViteServer } from 'vite';
 import dotenv from 'dotenv';
+import https from 'https';
+import http from 'http';
+import { execSync } from 'child_process';
 
 dotenv.config();
+
+// Helper to ensure SSL certificates exist
+function ensureSSLCertificates() {
+  const keyPath = path.join(process.cwd(), 'key.pem');
+  const certPath = path.join(process.cwd(), 'cert.pem');
+
+  if (fs.existsSync(keyPath) && fs.existsSync(certPath)) {
+    return { keyPath, certPath };
+  }
+
+  console.log("SnapQR - SSL certificates (key.pem/cert.pem) not found. Attempting to generate self-signed certificate...");
+  try {
+    // Run openssl to generate self-signed cert
+    execSync(`openssl req -x509 -newkey rsa:2048 -keyout "${keyPath}" -out "${certPath}" -sha256 -days 365 -nodes -subj "/CN=localhost"`, { stdio: 'ignore' });
+    console.log("SnapQR - Successfully generated self-signed certificate (key.pem/cert.pem).");
+    return { keyPath, certPath };
+  } catch (err) {
+    console.warn("SnapQR - Failed to generate SSL certificates via openssl. Camera will not work on non-secure contexts (http://public-ip) unless SSL certs are provided manually.", err);
+    return null;
+  }
+}
 
 const app = express();
 const PORT = 3000;
@@ -422,9 +446,14 @@ app.post('/api/photos/:id/download', (req, res) => {
 // --- VITE MIDDLEWARE SETUP ---
 
 async function startServer() {
+  const ssl = ensureSSLCertificates();
+
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
-      server: { middlewareMode: true },
+      server: { 
+        middlewareMode: true,
+        hmr: ssl ? { protocol: 'wss' } : undefined
+      },
       appType: "custom",
     });
     
@@ -463,8 +492,15 @@ async function startServer() {
     });
   }
 
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log(`[SnapQR Server] Running on http://localhost:${PORT}`);
+  const server = ssl ? https.createServer({
+    key: fs.readFileSync(ssl.keyPath),
+    cert: fs.readFileSync(ssl.certPath)
+  }, app) : http.createServer(app);
+
+  server.listen(PORT, "0.0.0.0", () => {
+    const scheme = ssl ? "https" : "http";
+    console.log(`[SnapQR Server] Running on ${scheme}://localhost:${PORT}`);
+    console.log(`[SnapQR Server] Running on ${scheme}://0.0.0.0:${PORT}`);
     console.log(`[SnapQR Server] Storage directory: ${IMAGES_DIR}`);
   });
 }

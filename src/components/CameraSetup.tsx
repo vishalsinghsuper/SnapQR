@@ -22,6 +22,9 @@ export default function CameraSetup({ onCameraReady, onBack }: CameraSetupProps)
 
   // Find camera devices
   const getCameraDevices = async () => {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
+      return;
+    }
     try {
       const allDevices = await navigator.mediaDevices.enumerateDevices();
       const videoDevices = allDevices.filter(device => device.kind === 'videoinput');
@@ -42,6 +45,12 @@ export default function CameraSetup({ onCameraReady, onBack }: CameraSetupProps)
     // Stop any existing stream
     if (stream) {
       stream.getTracks().forEach(track => track.stop());
+    }
+
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      setPermissionState('denied');
+      setErrorMsg("Camera access requires a secure connection (HTTPS). Since you are accessing via HTTP on a public IP, browser security restrictions block camera access. Please use HTTPS (https://) or access via localhost.");
+      return;
     }
 
     try {
