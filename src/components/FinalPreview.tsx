@@ -10,6 +10,8 @@ import confetti from 'canvas-confetti';
 import QRCode from 'qrcode';
 import { PhotoStripSettings } from '../types';
 
+const API_BASE = import.meta.env.VITE_API_URL || '';
+
 interface FinalPreviewProps {
   stripDataUrl: string;
   settings: PhotoStripSettings;
@@ -39,7 +41,7 @@ export default function FinalPreview({ stripDataUrl, settings, onReset, onBackTo
     setErrorMessage('');
 
     try {
-      const response = await fetch('/api/upload', {
+      const response = await fetch(`${API_BASE}/api/upload`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

@@ -8,6 +8,8 @@ import { Settings, BarChart3, Save, RotateCcw, Image, Heart, ShieldAlert, Sparkl
 import { motion } from 'motion/react';
 import { EventConfig, AnalyticsData } from '../types';
 
+const API_BASE = import.meta.env.VITE_API_URL || '';
+
 interface AdminPanelProps {
   onClose: () => void;
   config: EventConfig;
@@ -54,7 +56,7 @@ export default function AdminPanel({ onClose, config, analytics, onUpdateConfig,
     };
 
     try {
-      const res = await fetch('/api/config', {
+      const res = await fetch(`${API_BASE}/api/config`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -81,7 +83,7 @@ export default function AdminPanel({ onClose, config, analytics, onUpdateConfig,
     
     setIsResetting(true);
     try {
-      const res = await fetch('/api/config/reset-analytics', { method: 'POST' });
+      const res = await fetch(`${API_BASE}/api/config/reset-analytics`, { method: 'POST' });
       if (res.ok) {
         await onRefreshData();
         alert("Analytics metrics successfully cleared!");

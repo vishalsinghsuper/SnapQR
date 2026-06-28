@@ -14,6 +14,8 @@ import FinalPreview from './components/FinalPreview';
 import AdminPanel from './components/AdminPanel';
 import { EventConfig, AnalyticsData, PhotoStripSettings } from './types';
 
+const API_BASE = import.meta.env.VITE_API_URL || '';
+
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState<'welcome' | 'camera-setup' | 'capture' | 'customize' | 'preview'>('welcome');
   const [photoId, setPhotoId] = useState<string>('');
@@ -60,7 +62,7 @@ export default function App() {
   const fetchConfigAndAnalytics = async () => {
     try {
       setLoadingConfig(true);
-      const res = await fetch('/api/config');
+      const res = await fetch(`${API_BASE}/api/config`);
       if (res.ok) {
         const data = await res.json();
         setEventConfig(data.config);
